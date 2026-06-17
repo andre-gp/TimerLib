@@ -1,0 +1,16 @@
+{
+  "name": "com.gaton.timer",
+  "version": "0.0.1",
+  "displayName": "TimerLib",
+  "description": "TimerLib is a timer library for Unity. Start timers with a simple extension method and chain callbacks for update, loop, and completion events.",
+  "unity": "2022.1",
+  "keywords": [
+    "timer",
+    "fluent",
+    "countdown"
+  ],
+  "author": {
+    "name": "Andre Pacheco",
+    "email": "andregoncalvespacheco@hotmail.com"
+  }
+}
