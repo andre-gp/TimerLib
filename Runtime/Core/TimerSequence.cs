@@ -118,7 +118,9 @@ namespace TimerLib
                 return;
             }
 
-            activeTimer = steps[currentIndex].Run(Advance);
+            var timer = steps[currentIndex].Run(Advance);
+            if (timer != null)
+                activeTimer = timer;
         }
     }
 }
