@@ -66,6 +66,7 @@ namespace TimerLib
             if (hasSource && source == null)
             {
                 state = TimerState.Killed;
+                onKill?.Invoke();
                 TimerManager.Unregister(this);
                 return;
             }
@@ -91,13 +92,13 @@ namespace TimerLib
             if (!finished) 
                 return;
 
-            bool hasMoreLoops = loops < 0 || loopIndex < loops - 1;
+            bool hasMoreLoops = loops < 0 || loopIndex < loops;
 
             if (hasMoreLoops)
             {
+                loopIndex++;
                 onLoop?.Invoke(loopIndex);
                 if (state != TimerState.Running) return;
-                loopIndex++;
                 elapsed = 0f;
             }
             else
@@ -118,22 +119,31 @@ namespace TimerLib
         #endregion
 
         #region Configuration
-        public Timer SetUpdateType(UpdateType type) { updateType = type; return this; }
+        public Timer SetUpdateType(UpdateType type)
+        {
+            if (updateType == type || state is TimerState.Complete or TimerState.Killed) return this;
+            var old = updateType;
+            updateType = type;
+            TimerManager.RequestTypeChange(this, old);
+            return this;
+        }
+
         public Timer SetRealTime(bool realTime = true) { useRealTime = realTime; return this; }
+        /// <summary>Sets the number of extra loops after the first run. Use -1 for infinite loops.</summary>
         public Timer SetLoops(int loops) { this.loops = loops; return this; }
         #endregion
 
         #region Static Entry Points
-        public static Timer StartTimer(float duration)
+        public static Timer StartTimer(float duration, UpdateType updateType = UpdateType.Normal)
         {
-            var timer = new Timer(duration);
+            var timer = new Timer(duration, null, updateType);
             TimerManager.Register(timer);
             return timer;
         }
 
-        internal static Timer StartTimer(float duration, Object source)
+        internal static Timer StartTimer(float duration, Object source, UpdateType updateType = UpdateType.Normal)
         {
-            var timer = new Timer(duration, source);
+            var timer = new Timer(duration, source, updateType);
             TimerManager.Register(timer);
             return timer;
         }
@@ -152,9 +162,9 @@ namespace TimerLib
         private int loopIndex;
         private bool hasStarted;
 
-        private int loops = 1;
+        private int loops = 0;
         private bool useRealTime;
-        private UpdateType updateType = UpdateType.Normal;
+        private UpdateType updateType;
 
         private Action onStart;
         private Action<Timer> onUpdate;
@@ -167,11 +177,12 @@ namespace TimerLib
         internal bool UsesRealTime() => useRealTime;
         internal UpdateType GetUpdateType() => updateType;
 
-        private Timer(float duration, Object source = null)
+        private Timer(float duration, Object source, UpdateType updateType)
         {
             this.duration = Mathf.Max(0f, duration);
             this.source = source;
             hasSource = !ReferenceEquals(source, null);
+            this.updateType = updateType;
         }
 
         #endregion

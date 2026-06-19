@@ -13,6 +13,7 @@ namespace TimerLib
         private readonly List<Timer> fixedTimers = new();
         private readonly List<Timer> manual = new();
         private readonly List<Timer> toRemove = new();
+        private readonly List<(Timer timer, UpdateType from)> pendingMoves = new();
 
         public static TimerManager Instance
         {
@@ -52,6 +53,11 @@ namespace TimerLib
             instance?.toRemove.Add(timer);
         }
 
+        internal static void RequestTypeChange(Timer timer, UpdateType from)
+        {
+            instance?.pendingMoves.Add((timer, from));
+        }
+
         internal static void KillBySource(Object source)
         {
             if (instance == null) return;
@@ -84,6 +90,7 @@ namespace TimerLib
 
         private void Update()
         {
+            FlushMoves();
             FlushRemovals();
             FlushPending();
             TickList(normal, Time.deltaTime, Time.unscaledDeltaTime);
@@ -91,16 +98,40 @@ namespace TimerLib
 
         private void LateUpdate()
         {
+            FlushMoves();
             FlushRemovals();
             TickList(late, Time.deltaTime, Time.unscaledDeltaTime);
         }
 
         private void FixedUpdate()
         {
+            FlushMoves();
             FlushRemovals();
             FlushPending();
             TickList(fixedTimers, Time.fixedDeltaTime, Time.fixedUnscaledDeltaTime);
         }
+
+        private void FlushMoves()
+        {
+            if (pendingMoves.Count == 0) return;
+
+            foreach (var (timer, from) in pendingMoves)
+            {
+                if (GetListFor(from).Remove(timer))
+                    pending.Add(timer);
+                // if not found, the timer is still in pending and will be dispatched with its new type
+            }
+
+            pendingMoves.Clear();
+        }
+
+        private List<Timer> GetListFor(UpdateType type) => type switch
+        {
+            UpdateType.Late => late,
+            UpdateType.Fixed => fixedTimers,
+            UpdateType.Manual => manual,
+            _ => normal
+        };
 
         private void FlushPending()
         {
