@@ -141,6 +141,9 @@ namespace TimerLib
             return timer;
         }
 
+        public static Timer Create(float duration, UpdateType updateType = UpdateType.Normal)
+            => new Timer(duration, null, updateType);
+
         internal static Timer StartTimer(float duration, Object source, UpdateType updateType = UpdateType.Normal)
         {
             var timer = new Timer(duration, source, updateType);
@@ -176,6 +179,7 @@ namespace TimerLib
         internal Object Source => source;
         internal bool UsesRealTime() => useRealTime;
         internal UpdateType GetUpdateType() => updateType;
+        internal void Activate() => TimerManager.Register(this);
 
         private Timer(float duration, Object source, UpdateType updateType)
         {
